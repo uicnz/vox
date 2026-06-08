@@ -515,7 +515,7 @@ async function publishToGithub(
 }
 
 async function generateAppcast(options: Options): Promise<void> {
-  const generateAppcastPath = join(root, "bin", "generate_appcast");
+  const generateAppcastPath = resolveGenerateAppcastPath(options);
   const keyMaterial = materializeSparklePrivateKey(options);
   const args = [
     generateAppcastPath,
@@ -541,6 +541,29 @@ async function generateAppcast(options: Options): Promise<void> {
   } finally {
     keyMaterial.cleanup?.();
   }
+}
+
+function resolveGenerateAppcastPath(options: Options): string {
+  const candidates = [
+    join(
+      options.derivedDataPath,
+      "SourcePackages",
+      "artifacts",
+      "sparkle",
+      "Sparkle",
+      "bin",
+      "generate_appcast"
+    ),
+    join(root, ".sourcePackages", "artifacts", "sparkle", "Sparkle", "bin", "generate_appcast"),
+    join(root, "bin", "generate_appcast"),
+  ];
+
+  const toolPath = candidates.find(candidate => existsSync(candidate));
+  if (toolPath) return toolPath;
+
+  throw new Error(
+    "Sparkle generate_appcast was not found. Run `xcodebuild -resolvePackageDependencies -scheme Vox` or run the release command without `--skip-build` so Xcode resolves Sparkle tools."
+  );
 }
 
 function ensureSparkleSigningSetup(

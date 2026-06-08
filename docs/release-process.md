@@ -21,7 +21,7 @@ https://raw.githubusercontent.com/uicnz/vox/main/docs/appcast.xml
 The public latest-download URL remains attached to the versioned release:
 
 ```text
-https://github.com/uicnz/vox/releases/download/v0.1.0/vox-latest.dmg
+https://github.com/uicnz/vox/releases/download/v0.1.2/vox-latest.dmg
 ```
 
 ## Quick Start
@@ -112,7 +112,7 @@ The repository stores:
 The cask uses a comma-separated Homebrew version:
 
 ```ruby
-version "0.1.0,01"
+version "0.1.2,02"
 ```
 
 The first value is the marketing version and GitHub release tag suffix. The
@@ -120,14 +120,14 @@ second value is `CFBundleVersion` and the release ZIP suffix. For this version,
 the cask URL resolves to:
 
 ```text
-https://github.com/uicnz/vox/releases/download/v0.1.0/Vox-0.1.0-01.zip
+https://github.com/uicnz/vox/releases/download/v0.1.2/Vox-0.1.2-02.zip
 ```
 
 After a release, calculate the SHA-256 from the versioned ZIP asset:
 
 ```bash
 curl -L \
-  https://github.com/uicnz/vox/releases/download/v0.1.0/Vox-0.1.0-01.zip \
+  https://github.com/uicnz/vox/releases/download/v0.1.2/Vox-0.1.2-02.zip \
   -o Vox.zip
 shasum -a 256 Vox.zip
 ```
@@ -153,9 +153,11 @@ brew install --cask uicnz/vox/aria-vox
 
 ### CFBundleVersion Requirements
 
-**Never manually edit `CFBundleVersion` or reuse build numbers.** Sparkle
-requires update archives in `build/updates/` to have unique, strictly
-increasing bundle versions.
+**Never reuse build numbers.** Sparkle requires update archives in
+`build/updates/` to have unique, strictly increasing bundle versions. Before
+publishing, the release tool validates that `package.json`, `Vox/Info.plist`,
+`Vox.xcodeproj`, and `aria-vox.rb` agree, and that the source
+`CFBundleVersion` is greater than the newest build in `docs/appcast.xml`.
 
 - `build/updates/` should contain versioned DMGs only, plus `appcast.xml` and
   generated delta archives
@@ -172,7 +174,7 @@ If you accidentally create a release with a duplicate `CFBundleVersion`:
 2. Regenerate the feed:
 
    ```bash
-   SPARKLE_URL="https://github.com/uicnz/vox/releases/download/v0.1.0/"
+   SPARKLE_URL="https://github.com/uicnz/vox/releases/download/v0.1.2/"
    .sourcePackages/artifacts/sparkle/Sparkle/bin/generate_appcast \
      --download-url-prefix "$SPARKLE_URL" \
      --maximum-deltas 3 \
@@ -184,9 +186,9 @@ If you accidentally create a release with a duplicate `CFBundleVersion`:
    ```bash
    cp build/updates/appcast.xml docs/appcast.xml
    git add docs/appcast.xml
-   git commit -m "Update Sparkle appcast for 0.1.0"
+   git commit -m "Update Sparkle appcast for 0.1.2"
    git push origin main
-   gh release upload v0.1.0 build/updates/appcast.xml --clobber
+   gh release upload v0.1.2 build/updates/appcast.xml --clobber
    ```
 
 ## Troubleshooting

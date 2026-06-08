@@ -1,6 +1,6 @@
 {
   "name": "vox-app",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Release metadata and build automation for the Vox macOS app.",
   "private": true,
   "license": "MIT",

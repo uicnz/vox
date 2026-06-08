@@ -38,6 +38,11 @@ type Options = {
   verbose: boolean;
 };
 
+type SourceVersionInfo = {
+  buildVersion: string;
+  shortVersion: string;
+};
+
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const root = resolve(scriptDir, "../..");
 const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
@@ -228,6 +233,8 @@ async function main(): Promise<void> {
   }
 
   ensureSparkleSigningSetup(options, { allowInfoPlistUpdate: false });
+  const sourceVersion = ensureSourceVersionMetadata(options);
+  ok(`Version metadata is consistent (${sourceVersion.shortVersion}, build ${sourceVersion.buildVersion})`);
 
   if (options.clean) {
     step("Cleaning derived data");
@@ -798,16 +805,188 @@ function parseGithubRepo(remoteURL: string): string | undefined {
 
 function readBundleVersion(app: string): string {
   const infoPath = join(app, "Contents", "Info.plist");
-  requirePath(infoPath, "Info.plist");
-  const plist = Bun.spawnSync(["plutil", "-extract", "CFBundleVersion", "raw", infoPath], {
+  return readPlistValue(infoPath, "CFBundleVersion");
+}
+
+function ensureSourceVersionMetadata(options: Options): SourceVersionInfo {
+  const sourceVersion = readSourceVersionInfo();
+  const xcodeVersions = readXcodeVersionSettings();
+  const caskVersion = readCaskVersion();
+  const errors: string[] = [];
+
+  if (sourceVersion.shortVersion !== packageJson.version) {
+    errors.push(
+      `Vox/Info.plist CFBundleShortVersionString is ${sourceVersion.shortVersion}; expected package.json version ${packageJson.version}.`
+    );
+  }
+
+  if (sourceVersion.shortVersion !== caskVersion.shortVersion) {
+    errors.push(
+      `aria-vox.rb marketing version is ${caskVersion.shortVersion}; expected ${sourceVersion.shortVersion}.`
+    );
+  }
+
+  if (sourceVersion.buildVersion !== caskVersion.buildVersion) {
+    errors.push(
+      `aria-vox.rb build version is ${caskVersion.buildVersion}; expected ${sourceVersion.buildVersion}.`
+    );
+  }
+
+  collectSettingMismatchErrors(
+    "MARKETING_VERSION",
+    xcodeVersions.marketingVersions,
+    sourceVersion.shortVersion,
+    errors
+  );
+  collectSettingMismatchErrors(
+    "CURRENT_PROJECT_VERSION",
+    xcodeVersions.buildVersions,
+    sourceVersion.buildVersion,
+    errors
+  );
+
+  if (options.publishGithub && !options.skipAppcast) {
+    const latestFeedBuild = latestSparkleBuildVersion();
+    if (
+      latestFeedBuild &&
+      compareBuildVersions(sourceVersion.buildVersion, latestFeedBuild) <= 0
+    ) {
+      errors.push(
+        `CFBundleVersion ${sourceVersion.buildVersion} must be greater than the current Sparkle feed build ${latestFeedBuild}. Bump CURRENT_PROJECT_VERSION/CFBundleVersion before releasing.`
+      );
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new Error(`Release metadata is inconsistent:\n- ${errors.join("\n- ")}`);
+  }
+
+  return sourceVersion;
+}
+
+function readSourceVersionInfo(): SourceVersionInfo {
+  return {
+    buildVersion: readPlistValue(sparkleInfoPlistPath, "CFBundleVersion"),
+    shortVersion: readPlistValue(sparkleInfoPlistPath, "CFBundleShortVersionString"),
+  };
+}
+
+function readPlistValue(plistPath: string, key: string): string {
+  requirePath(plistPath, "Info.plist");
+  const plist = Bun.spawnSync(["plutil", "-extract", key, "raw", plistPath], {
     cwd: root,
     stdout: "pipe",
     stderr: "pipe",
   });
   if (plist.exitCode !== 0) {
-    throw new Error(`Could not read CFBundleVersion from ${infoPath}`);
+    const stderr = plist.stderr.toString().trim();
+    throw new Error(
+      `Could not read ${key} from ${plistPath}${stderr ? `: ${stderr}` : ""}`
+    );
   }
   return plist.stdout.toString().trim();
+}
+
+function readXcodeVersionSettings(): {
+  buildVersions: string[];
+  marketingVersions: string[];
+} {
+  const projectPath = join(root, "Vox.xcodeproj", "project.pbxproj");
+  const project = readFileSync(projectPath, "utf8");
+
+  return {
+    buildVersions: uniqueSortedSettingValues(project, "CURRENT_PROJECT_VERSION"),
+    marketingVersions: uniqueSortedSettingValues(project, "MARKETING_VERSION"),
+  };
+}
+
+function uniqueSortedSettingValues(project: string, setting: string): string[] {
+  const pattern = new RegExp(`${setting}\\s*=\\s*([^;]+);`, "g");
+  const values = [...project.matchAll(pattern)].map(match => normalizeBuildSetting(match[1]));
+  return [...new Set(values)].sort();
+}
+
+function normalizeBuildSetting(value: string): string {
+  return value.trim().replace(/^"|"$/g, "");
+}
+
+function readCaskVersion(): SourceVersionInfo {
+  const caskPath = join(root, "aria-vox.rb");
+  const cask = readFileSync(caskPath, "utf8");
+  const match = /^\s*version\s+"([^"]+)"/m.exec(cask);
+  if (!match) {
+    throw new Error(`Could not read version from ${caskPath}`);
+  }
+
+  const [shortVersion, buildVersion] = match[1].split(",").map(part => part.trim());
+  if (!shortVersion || !buildVersion) {
+    throw new Error(`aria-vox.rb version must use "marketing,build" format.`);
+  }
+
+  return { buildVersion, shortVersion };
+}
+
+function collectSettingMismatchErrors(
+  setting: string,
+  values: string[],
+  expected: string,
+  errors: string[]
+): void {
+  if (values.length === 0) {
+    errors.push(`Vox.xcodeproj ${setting} was not found.`);
+    return;
+  }
+
+  if (values.some(value => value !== expected)) {
+    errors.push(
+      `Vox.xcodeproj ${setting} values are ${values.join(", ")}; expected ${expected}.`
+    );
+  }
+}
+
+function latestSparkleBuildVersion(): string | undefined {
+  if (!existsSync(sparkleFeedFilePath)) return undefined;
+
+  const feed = readFileSync(sparkleFeedFilePath, "utf8");
+  const versions = [...feed.matchAll(/<sparkle:version>([^<]+)<\/sparkle:version>/g)].map(
+    match => match[1].trim()
+  );
+  if (versions.length === 0) return undefined;
+
+  return versions.reduce((latest, current) =>
+    compareBuildVersions(current, latest) > 0 ? current : latest
+  );
+}
+
+function compareBuildVersions(left: string, right: string): number {
+  const leftSegments = buildVersionSegments(left);
+  const rightSegments = buildVersionSegments(right);
+  const count = Math.max(leftSegments.length, rightSegments.length);
+
+  for (let index = 0; index < count; index += 1) {
+    const leftSegment = leftSegments[index] ?? "0";
+    const rightSegment = rightSegments[index] ?? "0";
+    const comparison = compareBuildVersionSegment(leftSegment, rightSegment);
+    if (comparison !== 0) return comparison;
+  }
+
+  return 0;
+}
+
+function buildVersionSegments(version: string): string[] {
+  return version.split(/[._-]/).filter(Boolean);
+}
+
+function compareBuildVersionSegment(left: string, right: string): number {
+  if (/^\d+$/.test(left) && /^\d+$/.test(right)) {
+    const leftNumber = BigInt(left);
+    const rightNumber = BigInt(right);
+    if (leftNumber > rightNumber) return 1;
+    if (leftNumber < rightNumber) return -1;
+    return 0;
+  }
+
+  return left.localeCompare(right);
 }
 
 function requirePath(path: string, label: string): void {

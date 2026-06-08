@@ -9,9 +9,9 @@
             <sparkle:version>02</sparkle:version>
             <sparkle:shortVersionString>0.1.2</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/uicnz/vox/releases/download/v0.1.2/Vox-0.1.2-02.dmg" length="13600763" type="application/octet-stream" sparkle:edSignature="5WkBTpkRmZBb+GQwQLgkHXtoWX+atbsJjmRIK2c3C+I8G5wBFE6R3aOE14/w/fPtP9FAQ8j/x92Hq7qJvd0yCw=="/>
+            <enclosure url="https://github.com/uicnz/vox/releases/download/v0.1.2/Vox-0.1.2-02.dmg?download=1" length="13600763" type="application/octet-stream" sparkle:edSignature="5WkBTpkRmZBb+GQwQLgkHXtoWX+atbsJjmRIK2c3C+I8G5wBFE6R3aOE14/w/fPtP9FAQ8j/x92Hq7qJvd0yCw=="/>
             <sparkle:deltas>
-                <enclosure url="https://github.com/uicnz/vox/releases/download/v0.1.2/Vox02-01.delta" sparkle:deltaFrom="01" length="16222" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="860528" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="GM1nNOO5mFi3eCQdhgri9yAZYGwRUf82WCaqAHXD+0IuJd9cM0IKZKlOlFjXGfXFqprPeWMy/OqTk7A2XG7lCA=="/>
+                <enclosure url="https://github.com/uicnz/vox/releases/download/v0.1.2/Vox02-01.delta?download=1" sparkle:deltaFrom="01" length="16222" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="860528" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="GM1nNOO5mFi3eCQdhgri9yAZYGwRUf82WCaqAHXD+0IuJd9cM0IKZKlOlFjXGfXFqprPeWMy/OqTk7A2XG7lCA=="/>
             </sparkle:deltas>
         </item>
         <item>
@@ -21,7 +21,7 @@
             <sparkle:version>01</sparkle:version>
             <sparkle:shortVersionString>0.1.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/uicnz/vox/releases/download/v0.1.2/Vox-0.1.0-01.dmg" length="13601025" type="application/octet-stream" sparkle:edSignature="5wovTXewUk2ArP55aisPdQV/kSWSy+0aPN9QfGp7oOYPkoY71EXf17vezRenb0JD4flfiVLARAqqmVcMI6obAw=="/>
+            <enclosure url="https://github.com/uicnz/vox/releases/download/v0.1.2/Vox-0.1.0-01.dmg?download=1" length="13601025" type="application/octet-stream" sparkle:edSignature="5wovTXewUk2ArP55aisPdQV/kSWSy+0aPN9QfGp7oOYPkoY71EXf17vezRenb0JD4flfiVLARAqqmVcMI6obAw=="/>
         </item>
     </channel>
 </rss>

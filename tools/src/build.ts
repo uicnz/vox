@@ -534,6 +534,7 @@ async function generateAppcast(options: Options): Promise<void> {
     await clearQuarantineIfNeeded(generateAppcastPath, options);
     step("Generating Sparkle appcast");
     await run(args, options);
+    addGithubDownloadCacheBusterToAppcast(options);
     ok(`Generated ${join(options.updatesDir, "appcast.xml")}`);
   } finally {
     keyMaterial.cleanup?.();
@@ -568,6 +569,22 @@ function syncSparkleFeedFile(options: Options): void {
   requirePath(generatedFeedPath, "Generated Sparkle appcast");
   copyFileSync(generatedFeedPath, sparkleFeedFilePath);
   ok("Updated docs/appcast.xml");
+}
+
+function addGithubDownloadCacheBusterToAppcast(options: Options): void {
+  const appcastPath = join(options.updatesDir, "appcast.xml");
+  requirePath(appcastPath, "Generated Sparkle appcast");
+
+  const downloadPrefix = githubVersionedDownloadPrefix(options);
+  const pattern = new RegExp(`${escapeRegExp(downloadPrefix)}[^"\\s<]+`, "g");
+  const feed = readFileSync(appcastPath, "utf8");
+  const updatedFeed = feed.replace(pattern, url =>
+    url.includes("?") ? url : `${url}?download=1`
+  );
+
+  if (updatedFeed !== feed) {
+    writeFileSync(appcastPath, updatedFeed);
+  }
 }
 
 async function commitAndPushSparkleFeedFile(options: Options): Promise<void> {
@@ -1009,6 +1026,10 @@ function compareBuildVersionSegment(left: string, right: string): number {
   }
 
   return left.localeCompare(right);
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function requirePath(path: string, label: string): void {

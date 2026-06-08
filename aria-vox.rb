@@ -6,7 +6,7 @@ cask "aria-vox" do
   sha256 "75ac63ce9a18e71b7a30b5a66b23a69c9188d0d7c98020606fc8e0cfe68a1bd4"
 
   url "https://github.com/uicnz/vox/releases/download/v#{version.csv.first}/" \
-      "Vox-#{version.csv.first}-#{version.csv.second}.zip"
+      "Vox-#{version.csv.first}-#{version.csv.second}.zip?download=1"
   name "Vox"
   desc "On-device voice-to-text"
   homepage "https://github.com/uicnz/vox"

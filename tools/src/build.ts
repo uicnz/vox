@@ -705,12 +705,34 @@ function githubReleaseAssets(
   latestDmgPath: string,
   options: Options
 ): string[] {
-  const assets = [artifacts.dmgPath, artifacts.zipPath, latestDmgPath];
-  const appcastPath = join(options.updatesDir, "appcast.xml");
-  if (!options.skipAppcast && existsSync(appcastPath)) {
-    assets.unshift(appcastPath);
+  if (options.skipAppcast) {
+    return [artifacts.dmgPath, artifacts.zipPath, latestDmgPath];
   }
-  return assets;
+
+  return uniqueAssetPathsByName([
+    ...sparkleUpdateAssets(options),
+    artifacts.zipPath,
+    latestDmgPath,
+  ]);
+}
+
+function sparkleUpdateAssets(options: Options): string[] {
+  if (!existsSync(options.updatesDir)) return [];
+
+  return readdirSync(options.updatesDir)
+    .filter(name => name === "appcast.xml" || name.endsWith(".dmg") || name.endsWith(".delta"))
+    .sort()
+    .map(name => join(options.updatesDir, name));
+}
+
+function uniqueAssetPathsByName(paths: string[]): string[] {
+  const seen = new Set<string>();
+  return paths.filter(path => {
+    const name = basename(path);
+    if (seen.has(name)) return false;
+    seen.add(name);
+    return true;
+  });
 }
 
 async function ensureGithubRelease(

@@ -3,7 +3,7 @@
 
 cask "aria-vox" do
   version "0.1.2,02"
-  sha256 :no_check
+  sha256 "75ac63ce9a18e71b7a30b5a66b23a69c9188d0d7c98020606fc8e0cfe68a1bd4"
 
   url "https://github.com/uicnz/vox/releases/download/v#{version.csv.first}/" \
       "Vox-#{version.csv.first}-#{version.csv.second}.zip"

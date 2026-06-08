@@ -50,7 +50,8 @@ architectural components:
 - **FluidAudio (Nemotron + Parakeet)**: Native Core ML ASR model families
 - **WhisperKit**: Legacy Core ML Whisper support pending deprecation
 - **Sauce**: Keyboard event monitoring
-- **Sparkle**: Auto-updates from the latest GitHub release `appcast.xml`
+- **Sparkle**: Auto-updates from
+  <https://raw.githubusercontent.com/uicnz/vox/main/docs/appcast.xml>
 - **Swift Composable Architecture**: State management
 - **Inject** Hot Reloading for SwiftUI
 
@@ -213,6 +214,7 @@ signing, notarizing, appcast generation, and GitHub release uploads.
 7. Generates Sparkle `appcast.xml` with versioned GitHub release asset URLs
 8. Creates or updates the versioned GitHub release
 9. Uploads `appcast.xml`, DMG, ZIP, and `vox-latest.dmg` attachments
+10. Commits and pushes `docs/appcast.xml` for Sparkle's stable raw feed URL
 
 ### Artifacts
 

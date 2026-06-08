@@ -15,13 +15,13 @@ Releases are published entirely through GitHub:
 Sparkle checks this stable feed URL:
 
 ```text
-https://github.com/uicnz/vox/releases/latest/download/appcast.xml
+https://raw.githubusercontent.com/uicnz/vox/main/docs/appcast.xml
 ```
 
-The public latest-download URL is:
+The public latest-download URL remains attached to the versioned release:
 
 ```text
-https://github.com/uicnz/vox/releases/latest/download/vox-latest.dmg
+https://github.com/uicnz/vox/releases/download/v0.1.0/vox-latest.dmg
 ```
 
 ## Quick Start
@@ -32,7 +32,8 @@ bun run release
 
 By default this publishes:
 
-- Sparkle feed and user-facing assets to tag `v<package.json version>`
+- Sparkle feed file to `docs/appcast.xml`
+- User-facing assets to tag `v<package.json version>`
 - Appcast enclosure URLs that point at that same versioned release
 
 Override the repository or versioned tag when needed:
@@ -101,6 +102,10 @@ The versioned GitHub Release stores:
 - `Vox-{version}-{build}.dmg`
 - `Vox-{version}-{build}.zip`
 - `vox-latest.dmg`
+
+The repository stores:
+
+- `docs/appcast.xml`, served through `raw.githubusercontent.com`
 
 ## Homebrew Cask
 
@@ -177,6 +182,10 @@ If you accidentally create a release with a duplicate `CFBundleVersion`:
 3. Re-run `bun run release` or upload the corrected `appcast.xml`:
 
    ```bash
+   cp build/updates/appcast.xml docs/appcast.xml
+   git add docs/appcast.xml
+   git commit -m "Update Sparkle appcast for 0.1.0"
+   git push origin main
    gh release upload v0.1.0 build/updates/appcast.xml --clobber
    ```
 
@@ -201,7 +210,7 @@ If you accidentally create a release with a duplicate `CFBundleVersion`:
 - Ensure the feed URL is reachable:
 
   ```bash
-  curl -I https://github.com/uicnz/vox/releases/latest/download/appcast.xml
+  curl -I https://raw.githubusercontent.com/uicnz/vox/main/docs/appcast.xml
   ```
 
 - Confirm release assets referenced by `appcast.xml` exist in the versioned

@@ -1,0 +1,15 @@
+<?xml version="1.0" standalone="yes"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>Vox</title>
+        <item>
+            <title>0.1.0</title>
+            <pubDate>Mon, 08 Jun 2026 19:06:03 +1200</pubDate>
+            <link>https://github.com/uicnz/vox/releases/tag/v0.1.0</link>
+            <sparkle:version>01</sparkle:version>
+            <sparkle:shortVersionString>0.1.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/uicnz/vox/releases/download/v0.1.0/Vox-0.1.0-01.dmg" length="13601025" type="application/octet-stream" sparkle:edSignature="5wovTXewUk2ArP55aisPdQV/kSWSy+0aPN9QfGp7oOYPkoY71EXf17vezRenb0JD4flfiVLARAqqmVcMI6obAw=="/>
+        </item>
+    </channel>
+</rss>

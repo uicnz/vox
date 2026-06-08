@@ -44,6 +44,7 @@ const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"))
   version: string;
 };
 const defaultSparkleEdKeyFile = join(root, ".release", "sparkle-ed25519-private-key");
+const sparkleFeedFilePath = join(root, "docs", "appcast.xml");
 const sparkleInfoPlistPath = join(root, "Vox", "Info.plist");
 const ed25519Pkcs8SeedPrefix = Buffer.from("302e020100300506032b657004220420", "hex");
 
@@ -478,6 +479,7 @@ async function publishToGithub(
 
   if (!options.skipAppcast) {
     await generateAppcast(options);
+    syncSparkleFeedFile(options);
   }
 
   if (!options.skipGithubVersionRelease) {
@@ -493,6 +495,10 @@ async function publishToGithub(
       githubReleaseAssets(artifacts, latestDmgPath, options),
       options
     );
+
+    if (!options.skipAppcast) {
+      await commitAndPushSparkleFeedFile(options);
+    }
 
     ok(`Sparkle feed: ${githubSparkleFeedURL(options)}`);
   }
@@ -548,6 +554,34 @@ function resolveGenerateAppcastPath(options: Options): string {
   throw new Error(
     "Sparkle generate_appcast was not found. Run `xcodebuild -resolvePackageDependencies -scheme Vox` or run the release command without `--skip-build` so Xcode resolves Sparkle tools."
   );
+}
+
+function syncSparkleFeedFile(options: Options): void {
+  const generatedFeedPath = join(options.updatesDir, "appcast.xml");
+  requirePath(generatedFeedPath, "Generated Sparkle appcast");
+  copyFileSync(generatedFeedPath, sparkleFeedFilePath);
+  ok("Updated docs/appcast.xml");
+}
+
+async function commitAndPushSparkleFeedFile(options: Options): Promise<void> {
+  await run(["git", "add", "docs/appcast.xml"], options);
+  if (
+    await commandSucceeds(
+      ["git", "diff", "--cached", "--quiet", "--", "docs/appcast.xml"],
+      options
+    )
+  ) {
+    ok("docs/appcast.xml already committed");
+    return;
+  }
+
+  step("Committing Sparkle appcast feed");
+  await run(
+    ["git", "commit", "-m", `Update Sparkle appcast for ${packageJson.version}`, "--", "docs/appcast.xml"],
+    options
+  );
+  await run(["git", "push", "origin", "main"], options);
+  ok("Published docs/appcast.xml");
 }
 
 function ensureSparkleSigningSetup(
@@ -736,7 +770,7 @@ function githubVersionedDownloadPrefix(options: Options): string {
 }
 
 function githubSparkleFeedURL(options: Options): string {
-  return `https://github.com/${options.githubRepo}/releases/latest/download/appcast.xml`;
+  return `https://raw.githubusercontent.com/${options.githubRepo}/main/docs/appcast.xml`;
 }
 
 function inferGithubRepo(): string | undefined {

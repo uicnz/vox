@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>AudioHardwarePowerHint</key>
+	<string>None</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.7.7</string>
+	<key>CFBundleVersion</key>
+	<string>87</string>
+	<key>NSAccessibilityUsageDescription</key>
+	<string>Vox needs accessibility access to monitor keyboard events for hotkey detection.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+	<key>NSInputMonitoringUsageDescription</key>
+	<string>Vox needs Input Monitoring permission so your global hotkey works in every app.</string>
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://github.com/uicnz/vox/releases/download/sparkle/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>mIek27lttJe8cIBqVZFhh6reRKjpTx1h9ZY9OKWPtuM=</string>
+</dict>
+</plist>

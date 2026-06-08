@@ -1,0 +1,27 @@
+build/
+updates/
+.vscode
+.DS_Store
+
+# Xcode
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcuserstate
+buildServer.json
+/bin/
+/scripts/
+/test_logger
+ExportOptions.plist
+VoxCore/.build
+VoxCore/.swiftpm/xcode/xcuserdata/kit.xcuserdatad/xcschemes
+FluidAudio/
+node_modules/
+.npm-cache/
+.tmp/
+.home/
+.cache/
+.derivedData/
+.sourcePackages/
+
+# Claude
+.claude/

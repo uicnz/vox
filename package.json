@@ -1,0 +1,14 @@
+{
+  "name": "vox-app",
+  "version": "0.7.7",
+  "description": "Release metadata and build automation for the Vox macOS app.",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build:app": "bun run tools/src/build.ts --skip-notarize",
+    "build:release": "bun run tools/src/build.ts",
+    "build:install": "bun run tools/src/build.ts --install",
+    "release": "bun run tools/src/build.ts --publish-github"
+  }
+}

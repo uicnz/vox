@@ -11,7 +11,9 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
+import { createPrivateKey, createPublicKey, randomBytes } from "node:crypto";
 import { basename, dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 type Options = {
   clean: boolean;
@@ -25,6 +27,7 @@ type Options = {
   install: boolean;
   maximumDeltas: number;
   notaryProfile: string;
+  prepareSparkleSigning: boolean;
   publishGithub: boolean;
   signIdentity: string;
   skipAppcast: boolean;
@@ -36,10 +39,14 @@ type Options = {
   verbose: boolean;
 };
 
-const root = resolve(import.meta.dirname, "../..");
+const scriptDir = dirname(fileURLToPath(import.meta.url));
+const root = resolve(scriptDir, "../..");
 const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
   version: string;
 };
+const defaultSparkleEdKeyFile = join(root, ".release", "sparkle-ed25519-private-key");
+const sparkleInfoPlistPath = join(root, "Vox", "Info.plist");
+const ed25519Pkcs8SeedPrefix = Buffer.from("302e020100300506032b657004220420", "hex");
 
 const defaults = {
   configuration: "Release",
@@ -63,6 +70,7 @@ function parseArgs(argv: string[]): Options {
     install: false,
     maximumDeltas: Number.parseInt(process.env.SPARKLE_MAXIMUM_DELTAS ?? "3", 10),
     notaryProfile: defaults.notaryProfile,
+    prepareSparkleSigning: false,
     publishGithub: false,
     signIdentity: defaults.signIdentity,
     skipAppcast: false,
@@ -84,6 +92,8 @@ function parseArgs(argv: string[]): Options {
       options.install = true;
     } else if (arg === "--publish-github") {
       options.publishGithub = true;
+    } else if (arg === "--prepare-sparkle-signing") {
+      options.prepareSparkleSigning = true;
     } else if (arg === "--github-draft") {
       options.githubDraft = true;
     } else if (arg === "--github-prerelease") {
@@ -145,6 +155,7 @@ Usage:
 Options:
   --install                         Copy the verified app to /Applications/Vox.app
   --publish-github                  Publish release assets to GitHub Releases
+  --prepare-sparkle-signing         Generate/use Sparkle key and update Info.plist, then exit
   --github-repo=<owner/repo>        GitHub repository (default: remote origin, GITHUB_REPOSITORY, or uicnz/vox)
   --github-release-tag=<tag>        User-facing GitHub release tag (default: v${packageJson.version})
   --github-sparkle-release-tag=<tag> Dedicated Sparkle artifact release tag (default: sparkle)
@@ -215,6 +226,14 @@ async function main(): Promise<void> {
   logInfo(`DerivedData: ${options.derivedDataPath}`);
   logInfo(`Signing: ${options.signIdentity}`);
   logInfo(`Notary profile: ${options.skipNotarize ? "skipped" : options.notaryProfile}`);
+
+  if (options.prepareSparkleSigning) {
+    ensureSparkleSigningSetup(options, { allowInfoPlistUpdate: true });
+    ok("Sparkle signing is prepared");
+    return;
+  }
+
+  ensureSparkleSigningSetup(options, { allowInfoPlistUpdate: false });
 
   if (options.clean) {
     step("Cleaning derived data");
@@ -496,9 +515,10 @@ async function publishToGithub(
 }
 
 async function generateAppcast(options: Options): Promise<void> {
+  const generateAppcastPath = join(root, "bin", "generate_appcast");
   const keyMaterial = materializeSparklePrivateKey(options);
   const args = [
-    join(root, "bin", "generate_appcast"),
+    generateAppcastPath,
     "--download-url-prefix",
     githubSparkleDownloadPrefix(options),
     "--link",
@@ -514,12 +534,102 @@ async function generateAppcast(options: Options): Promise<void> {
   args.push(options.updatesDir);
 
   try {
+    await clearQuarantineIfNeeded(generateAppcastPath, options);
     step("Generating Sparkle appcast");
     await run(args, options);
     ok(`Generated ${join(options.updatesDir, "appcast.xml")}`);
   } finally {
     keyMaterial.cleanup?.();
   }
+}
+
+function ensureSparkleSigningSetup(
+  options: Options,
+  config: { allowInfoPlistUpdate: boolean }
+): void {
+  if (!options.prepareSparkleSigning && (!options.publishGithub || options.skipAppcast)) return;
+
+  const keySource = resolveSparklePrivateKey(options);
+  const publicKey = publicKeyForSparklePrivateKey(keySource.privateKey);
+  const publicKeyChanged = syncSparklePublicKey(publicKey, config.allowInfoPlistUpdate);
+
+  if (publicKeyChanged && !config.allowInfoPlistUpdate) {
+    throw new Error(
+      "Sparkle public key does not match Vox/Info.plist. Run `bun run tools/src/build.ts --prepare-sparkle-signing`, commit the Info.plist change, then rerun release."
+    );
+  }
+
+  if (keySource.path) {
+    options.sparkleEdKeyFile = keySource.path;
+  }
+}
+
+function resolveSparklePrivateKey(options: Options): { privateKey: string; path?: string } {
+  if (options.sparkleEdKeyFile) {
+    requirePath(options.sparkleEdKeyFile, "Sparkle EdDSA private key");
+    return {
+      path: options.sparkleEdKeyFile,
+      privateKey: readFileSync(options.sparkleEdKeyFile, "utf8").trim(),
+    };
+  }
+
+  const envPrivateKey = process.env.SPARKLE_PRIVATE_KEY ?? process.env.SPARKLE_ED_PRIVATE_KEY;
+  if (envPrivateKey?.trim()) {
+    return { privateKey: envPrivateKey.trim() };
+  }
+
+  if (!existsSync(defaultSparkleEdKeyFile)) {
+    mkdirSync(dirname(defaultSparkleEdKeyFile), { recursive: true });
+    const privateKey = randomBytes(32).toString("base64");
+    writeFileSync(defaultSparkleEdKeyFile, `${privateKey}\n`, { mode: 0o600 });
+    chmodSync(defaultSparkleEdKeyFile, 0o600);
+    ok(`Generated local Sparkle private key at ${defaultSparkleEdKeyFile}`);
+  }
+
+  return {
+    path: defaultSparkleEdKeyFile,
+    privateKey: readFileSync(defaultSparkleEdKeyFile, "utf8").trim(),
+  };
+}
+
+function publicKeyForSparklePrivateKey(privateKeyBase64: string): string {
+  const seed = Buffer.from(privateKeyBase64.trim(), "base64");
+  if (seed.length !== 32) {
+    throw new Error("Sparkle EdDSA private key must be a base64-encoded 32-byte seed.");
+  }
+
+  const pkcs8 = Buffer.concat([ed25519Pkcs8SeedPrefix, seed]);
+  const privateKey = createPrivateKey({ key: pkcs8, format: "der", type: "pkcs8" });
+  const publicDer = createPublicKey(privateKey).export({ format: "der", type: "spki" });
+  return Buffer.from(publicDer).subarray(-32).toString("base64");
+}
+
+function syncSparklePublicKey(publicKey: string, allowUpdate: boolean): boolean {
+  const plist = readFileSync(sparkleInfoPlistPath, "utf8");
+  const pattern = /(<key>SUPublicEDKey<\/key>\s*<string>)([^<]*)(<\/string>)/;
+  const match = pattern.exec(plist);
+  if (!match) {
+    throw new Error(`SUPublicEDKey not found in ${sparkleInfoPlistPath}`);
+  }
+  if (match[2] === publicKey) return false;
+  if (!allowUpdate) return true;
+
+  writeFileSync(sparkleInfoPlistPath, plist.replace(pattern, `$1${publicKey}$3`));
+  ok("Updated Vox/Info.plist SUPublicEDKey to match the Sparkle signing key");
+  return true;
+}
+
+async function clearQuarantineIfNeeded(path: string, options: Options): Promise<void> {
+  const quarantine = Bun.spawnSync(["xattr", "-p", "com.apple.quarantine", path], {
+    cwd: root,
+    stderr: "pipe",
+    stdout: "pipe",
+  });
+  if (quarantine.exitCode !== 0) return;
+
+  step(`Clearing Gatekeeper quarantine from ${basename(path)}`);
+  await run(["xattr", "-d", "com.apple.quarantine", path], options);
+  ok(`${basename(path)} quarantine cleared`);
 }
 
 function materializeSparklePrivateKey(options: Options): {
@@ -544,7 +654,7 @@ function materializeSparklePrivateKey(options: Options): {
 
 function sparkleAssetsIn(updatesDir: string): string[] {
   return readdirSync(updatesDir)
-    .filter(name => {
+    .filter((name: string) => {
       if (name === "vox-latest.dmg") return false;
       return (
         name === "appcast.xml" ||
@@ -555,7 +665,7 @@ function sparkleAssetsIn(updatesDir: string): string[] {
         name.endsWith(".zip")
       );
     })
-    .map(name => join(updatesDir, name));
+    .map((name: string) => join(updatesDir, name));
 }
 
 async function ensureGithubRelease(

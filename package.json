@@ -9,6 +9,12 @@
     "build:app": "bun run tools/src/build.ts --skip-notarize",
     "build:release": "bun run tools/src/build.ts",
     "build:install": "bun run tools/src/build.ts --install",
+    "check": "bun run check:tools",
+    "check:tools": "tsc --noEmit",
     "release": "bun run tools/src/build.ts --publish-github"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.14",
+    "typescript": "^6.0.3"
   }
 }

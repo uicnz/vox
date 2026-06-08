@@ -22,6 +22,7 @@ node_modules/
 .cache/
 .derivedData/
 .sourcePackages/
+.release/
 
 # Claude
 .claude/

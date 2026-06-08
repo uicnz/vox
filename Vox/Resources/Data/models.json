@@ -1,5 +1,13 @@
 [
   {
+    "displayName": "Nemotron 3.5 ASR",
+    "internalName": "nemotron-3.5-asr-streaming-0.6b-multilingual-coreml-2240ms",
+    "size": "Full multilingual",
+    "accuracyStars": 5,
+    "speedStars": 5,
+    "storageSize": "636MB"
+  },
+  {
     "displayName": "Parakeet TDT v2",
     "internalName": "parakeet-tdt-0.6b-v2-coreml",
     "size": "English",
@@ -14,14 +22,6 @@
     "accuracyStars": 5,
     "speedStars": 5,
     "storageSize": "650MB"
-  },
-  {
-    "displayName": "Nemotron 3.5 ASR",
-    "internalName": "nemotron-3.5-asr-streaming-0.6b-multilingual-coreml-2240ms",
-    "size": "Full multilingual",
-    "accuracyStars": 5,
-    "speedStars": 5,
-    "storageSize": "636MB"
   },
   {
     "displayName": "Whisper Small (Tiny)",

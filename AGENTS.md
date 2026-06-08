@@ -5,8 +5,9 @@ This file provides guidance for coding agents working in this repo.
 ## Project Overview
 
 Vox is a macOS menu bar application for on-device voice-to-text. It supports
-Whisper (Core ML via WhisperKit), Parakeet TDT, and Nemotron ASR (Core ML via
-FluidAudio). Users activate transcription with hotkeys; text can be
+Nemotron ASR and Parakeet TDT via FluidAudio. WhisperKit remains linked for
+legacy Whisper models, but Whisper is deprecated and should not be treated as
+the default path. Users activate transcription with hotkeys; text can be
 auto-pasted into the active app.
 
 ## Build & Development Commands
@@ -39,15 +40,15 @@ architectural components:
 
 ### Dependency Clients
 
-- `TranscriptionClient`: WhisperKit integration for ML transcription
+- `TranscriptionClient`: FluidAudio and legacy WhisperKit transcription
 - `RecordingClient`: AVAudioRecorder wrapper for audio capture
 - `PasteboardClient`: Clipboard operations
 - `KeyEventMonitorClient`: Global hotkey monitoring via Sauce framework
 
 ### Key Dependencies
 
-- **WhisperKit**: Core ML transcription (tracking main branch)
-- **FluidAudio (Parakeet + Nemotron)**: Native Core ML ASR model families
+- **FluidAudio (Nemotron + Parakeet)**: Native Core ML ASR model families
+- **WhisperKit**: Legacy Core ML Whisper support pending deprecation
 - **Sauce**: Keyboard event monitoring
 - **Sparkle**: Auto-updates from the latest GitHub release `appcast.xml`
 - **Swift Composable Architecture**: State management
@@ -66,9 +67,10 @@ architectural components:
    - Only ESC cancels recordings after the threshold
 
 2. **Model Management**: Models are managed by `ModelDownloadFeature`. Curated
-   defaults live in `Vox/Resources/Data/models.json`. The Settings UI shows a
-   compact opinionated list of native FluidAudio models first, with Whisper
-   options behind "Show more". No dropdowns.
+   defaults live in `Vox/Resources/Data/models.json`. Nemotron ASR is the
+   default and appears first. Parakeet remains available as a native
+   FluidAudio option. Whisper options are legacy and stay behind "Show more"
+   until they are removed. No dropdowns.
 
 3. **Sound Effects**: Audio feedback is provided via `SoundEffect.swift` using
    files in `Resources/Audio/`
@@ -87,14 +89,16 @@ architectural components:
 
 ## Models (2025‑11)
 
-- First-run default: Parakeet TDT v3 (multilingual) via FluidAudio
-- Additional curated: Parakeet TDT v2, Nemotron 3.5 ASR full multilingual,
-  Whisper Small (Tiny), Whisper Medium (Base), Whisper Large v3
-- Note: Distil-Whisper is English-only and not shown by default
+- First-run default: Nemotron 3.5 ASR full multilingual via FluidAudio
+- Additional curated FluidAudio models: Parakeet TDT v2 and Parakeet TDT v3
+- Legacy Whisper models behind "Show more": Whisper Small (Tiny), Whisper
+  Medium (Base), and Whisper Large v3
+- Note: Distil-Whisper is English-only and not shown by default. Whisper models
+  are deprecated and expected to be removed in a future version.
 
 ### Storage Locations
 
-- WhisperKit models
+- Legacy WhisperKit models
   - `~/Library/Application Support/nz.uic.vox/models/argmaxinc/whisperkit-coreml/<model>`
 - FluidAudio ASR models
   - We set `XDG_CACHE_HOME` on launch so FluidAudio caches under the app container:
@@ -105,9 +109,10 @@ architectural components:
 
 ### Progress + Availability
 
-- WhisperKit: native progress
-- Parakeet: best‑effort progress by polling the model directory size during download
 - Nemotron: FluidAudio download progress
+- Parakeet: best-effort progress by polling the model directory size during
+  download
+- WhisperKit: native progress for legacy Whisper models
 - Availability detection scans both `Application Support/FluidAudio/Models` and
   our app cache path
 

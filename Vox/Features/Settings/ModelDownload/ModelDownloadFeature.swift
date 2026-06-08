@@ -438,13 +438,6 @@ public struct ModelDownloadFeature {
 
 extension ModelDownloadFeature.State {
 	var preferredBootstrapModelIdentifier: String {
-		(prefersEnglishBootstrapModel ? ParakeetModel.englishV2 : ParakeetModel.multilingualV3).identifier
-	}
-
-	private var prefersEnglishBootstrapModel: Bool {
-		guard let language = voxSettings.outputLanguage?.lowercased(), !language.isEmpty else {
-			return false
-		}
-		return language.hasPrefix("en")
+		NemotronModel.multilingualFull2240.identifier
 	}
 }

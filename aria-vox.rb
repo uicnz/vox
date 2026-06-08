@@ -1,10 +1,14 @@
-cask "vox" do
-  version "0.2.11"
-  sha256 :no_check  # Will be filled after first release
+# typed: strict
+# frozen_string_literal: true
 
-  url "https://github.com/uicnz/vox/releases/download/v#{version}/Vox-v#{version}.zip"
+cask "aria-vox" do
+  version "0.1.0,01"
+  sha256 :no_check
+
+  url "https://github.com/uicnz/vox/releases/download/v#{version.csv.first}/" \
+      "Vox-#{version.csv.first}-#{version.csv.second}.zip"
   name "Vox"
-  desc "On-device voice-to-text for macOS"
+  desc "On-device voice-to-text"
   homepage "https://github.com/uicnz/vox"
 
   livecheck do

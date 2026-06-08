@@ -110,16 +110,45 @@ The versioned GitHub Release stores:
 
 ## Homebrew Cask
 
-After a release, update `vox.rb` using the versioned ZIP asset:
+The cask uses a comma-separated Homebrew version:
+
+```ruby
+version "0.1.0,01"
+```
+
+The first value is the marketing version and GitHub release tag suffix. The
+second value is `CFBundleVersion` and the release ZIP suffix. For this version,
+the cask URL resolves to:
+
+```text
+https://github.com/uicnz/vox/releases/download/v0.1.0/Vox-0.1.0-01.zip
+```
+
+After a release, calculate the SHA-256 from the versioned ZIP asset:
 
 ```bash
 curl -L \
-  https://github.com/uicnz/vox/releases/download/v0.8.0/Vox-0.8.0-88.zip \
+  https://github.com/uicnz/vox/releases/download/v0.1.0/Vox-0.1.0-01.zip \
   -o Vox.zip
 shasum -a 256 Vox.zip
 ```
 
-Update `vox.rb` with the new version and SHA.
+Update `aria-vox.rb` with the new version and SHA. Use `sha256 :no_check`
+only until the first published ZIP exists.
+
+Publish the cask in the Homebrew tap repository, not in the app release:
+
+```bash
+brew tap-new uicnz/vox
+mkdir -p "$(brew --repository uicnz/vox)/Casks"
+cp aria-vox.rb "$(brew --repository uicnz/vox)/Casks/aria-vox.rb"
+```
+
+Commit and push that tap repository. Users can then install Vox with:
+
+```bash
+brew install --cask uicnz/vox/aria-vox
+```
 
 ## Critical Constraints
 
@@ -190,4 +219,4 @@ If you accidentally create a release with a duplicate `CFBundleVersion`:
   publishing
 - `bin/generate_appcast` - Sparkle appcast generator
 - `Vox/Info.plist` - Sparkle feed URL and public EdDSA key
-- `vox.rb` - Homebrew cask formula
+- `aria-vox.rb` - Homebrew cask formula

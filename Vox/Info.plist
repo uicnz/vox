@@ -9,9 +9,9 @@
 	<key>CFBundleIconName</key>
 	<string>AppIcon</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.7.7</string>
+	<string>0.1.0</string>
 	<key>CFBundleVersion</key>
-	<string>87</string>
+	<string>01</string>
 	<key>NSAccessibilityUsageDescription</key>
 	<string>Vox needs accessibility access to monitor keyboard events for hotkey detection.</string>
 	<key>NSAppTransportSecurity</key>

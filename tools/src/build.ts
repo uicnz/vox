@@ -23,7 +23,6 @@ type Options = {
   githubPrerelease: boolean;
   githubReleaseTag: string;
   githubRepo: string;
-  githubSparkleReleaseTag: string;
   install: boolean;
   maximumDeltas: number;
   notaryProfile: string;
@@ -50,7 +49,6 @@ const ed25519Pkcs8SeedPrefix = Buffer.from("302e020100300506032b657004220420", "
 
 const defaults = {
   configuration: "Release",
-  githubSparkleReleaseTag: "sparkle",
   notaryProfile: "aria-notarytool",
   signIdentity: "Developer ID Application: Shane Holloman (N68C9LUA5B)",
 };
@@ -65,8 +63,6 @@ function parseArgs(argv: string[]): Options {
     githubPrerelease: false,
     githubReleaseTag: process.env.GITHUB_RELEASE_TAG ?? versionTag,
     githubRepo: process.env.GITHUB_REPOSITORY ?? inferGithubRepo() ?? "uicnz/vox",
-    githubSparkleReleaseTag:
-      process.env.GITHUB_SPARKLE_RELEASE_TAG ?? defaults.githubSparkleReleaseTag,
     install: false,
     maximumDeltas: Number.parseInt(process.env.SPARKLE_MAXIMUM_DELTAS ?? "3", 10),
     notaryProfile: defaults.notaryProfile,
@@ -116,8 +112,6 @@ function parseArgs(argv: string[]): Options {
       options.githubReleaseTag = valueFor(arg);
     } else if (arg.startsWith("--github-repo=")) {
       options.githubRepo = valueFor(arg);
-    } else if (arg.startsWith("--github-sparkle-release-tag=")) {
-      options.githubSparkleReleaseTag = valueFor(arg);
     } else if (arg.startsWith("--maximum-deltas=")) {
       options.maximumDeltas = Number.parseInt(valueFor(arg), 10);
     } else if (arg.startsWith("--notary-profile=")) {
@@ -158,14 +152,13 @@ Options:
   --prepare-sparkle-signing         Generate/use Sparkle key and update Info.plist, then exit
   --github-repo=<owner/repo>        GitHub repository (default: remote origin, GITHUB_REPOSITORY, or uicnz/vox)
   --github-release-tag=<tag>        User-facing GitHub release tag (default: v${packageJson.version})
-  --github-sparkle-release-tag=<tag> Dedicated Sparkle artifact release tag (default: sparkle)
   --github-draft                    Create the user-facing release as a draft
   --github-prerelease               Mark the user-facing release as a prerelease
   --updates-dir=<path>              Sparkle archive directory (default: build/updates)
   --maximum-deltas=<count>          Delta updates to generate for the latest version (default: 3)
   --sparkle-ed-key-file=<path>      Sparkle EdDSA private key file for appcast signing
   --skip-appcast                    Publish GitHub assets without regenerating appcast.xml
-  --skip-github-version-release     Only update the dedicated Sparkle artifact release
+  --skip-github-version-release     Build assets without uploading the versioned GitHub release
   --skip-notarize                   Build and Developer ID sign, but do not notarize
   --skip-build                      Reuse the existing app in the derived data path
   --clean                           Remove the derived data path before building
@@ -487,17 +480,6 @@ async function publishToGithub(
     await generateAppcast(options);
   }
 
-  await ensureGithubRelease(
-    options.githubSparkleReleaseTag,
-    "Vox Sparkle Updates",
-    ["--notes", "Stable Sparkle appcast and latest Vox DMG assets."],
-    options
-  );
-
-  const sparkleAssets = [...sparkleAssetsIn(options.updatesDir), latestDmgPath];
-  await uploadGithubAssets(options.githubSparkleReleaseTag, sparkleAssets, options);
-  ok(`Sparkle feed: ${githubSparkleFeedURL(options)}`);
-
   if (!options.skipGithubVersionRelease) {
     await ensureGithubRelease(
       options.githubReleaseTag,
@@ -508,9 +490,11 @@ async function publishToGithub(
 
     await uploadGithubAssets(
       options.githubReleaseTag,
-      [artifacts.dmgPath, artifacts.zipPath],
+      githubReleaseAssets(artifacts, latestDmgPath, options),
       options
     );
+
+    ok(`Sparkle feed: ${githubSparkleFeedURL(options)}`);
   }
 }
 
@@ -520,7 +504,7 @@ async function generateAppcast(options: Options): Promise<void> {
   const args = [
     generateAppcastPath,
     "--download-url-prefix",
-    githubSparkleDownloadPrefix(options),
+    githubVersionedDownloadPrefix(options),
     "--link",
     `https://github.com/${options.githubRepo}/releases/tag/${options.githubReleaseTag}`,
     "--maximum-deltas",
@@ -675,20 +659,17 @@ function materializeSparklePrivateKey(options: Options): {
   };
 }
 
-function sparkleAssetsIn(updatesDir: string): string[] {
-  return readdirSync(updatesDir)
-    .filter((name: string) => {
-      if (name === "vox-latest.dmg") return false;
-      return (
-        name === "appcast.xml" ||
-        name.endsWith(".dmg") ||
-        name.endsWith(".delta") ||
-        name.endsWith(".tar") ||
-        name.endsWith(".tbz") ||
-        name.endsWith(".zip")
-      );
-    })
-    .map((name: string) => join(updatesDir, name));
+function githubReleaseAssets(
+  artifacts: { dmgPath: string; zipPath: string },
+  latestDmgPath: string,
+  options: Options
+): string[] {
+  const assets = [artifacts.dmgPath, artifacts.zipPath, latestDmgPath];
+  const appcastPath = join(options.updatesDir, "appcast.xml");
+  if (!options.skipAppcast && existsSync(appcastPath)) {
+    assets.unshift(appcastPath);
+  }
+  return assets;
 }
 
 async function ensureGithubRelease(
@@ -748,14 +729,14 @@ async function commandSucceeds(args: string[], options: Options): Promise<boolea
   return (await proc.exited) === 0;
 }
 
-function githubSparkleDownloadPrefix(options: Options): string {
+function githubVersionedDownloadPrefix(options: Options): string {
   return `https://github.com/${options.githubRepo}/releases/download/${encodeURIComponent(
-    options.githubSparkleReleaseTag
+    options.githubReleaseTag
   )}/`;
 }
 
 function githubSparkleFeedURL(options: Options): string {
-  return `${githubSparkleDownloadPrefix(options)}appcast.xml`;
+  return `https://github.com/${options.githubRepo}/releases/latest/download/appcast.xml`;
 }
 
 function inferGithubRepo(): string | undefined {

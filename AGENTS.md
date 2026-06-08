@@ -4,7 +4,10 @@ This file provides guidance for coding agents working in this repo.
 
 ## Project Overview
 
-Vox is a macOS menu bar application for on‑device voice‑to‑text. It supports Whisper (Core ML via WhisperKit), Parakeet TDT, and Nemotron ASR (Core ML via FluidAudio). Users activate transcription with hotkeys; text can be auto‑pasted into the active app.
+Vox is a macOS menu bar application for on-device voice-to-text. It supports
+Whisper (Core ML via WhisperKit), Parakeet TDT, and Nemotron ASR (Core ML via
+FluidAudio). Users activate transcription with hotkeys; text can be
+auto-pasted into the active app.
 
 ## Build & Development Commands
 
@@ -24,7 +27,8 @@ open Vox.xcodeproj
 
 ## Architecture
 
-The app uses **The Composable Architecture (TCA)** for state management. Key architectural components:
+The app uses **The Composable Architecture (TCA)** for state management. Key
+architectural components:
 
 ### Features (TCA Reducers)
 
@@ -45,33 +49,48 @@ The app uses **The Composable Architecture (TCA)** for state management. Key arc
 - **WhisperKit**: Core ML transcription (tracking main branch)
 - **FluidAudio (Parakeet + Nemotron)**: Native Core ML ASR model families
 - **Sauce**: Keyboard event monitoring
-- **Sparkle**: Auto-updates (feed: <https://github.com/uicnz/vox/releases/download/sparkle/appcast.xml>)
+- **Sparkle**: Auto-updates from the latest GitHub release `appcast.xml`
 - **Swift Composable Architecture**: State management
 - **Inject** Hot Reloading for SwiftUI
 
 ## Important Implementation Details
 
-1. **Hotkey Recording Modes**: The app supports both press-and-hold and double-tap recording modes, implemented in `HotKeyProcessor.swift`. See `docs/hotkey-semantics.md` for detailed behavior specifications including:
-   - **Modifier-only hotkeys** (e.g., Option) use a **0.3s threshold** to prevent accidental triggers from OS shortcuts
-   - **Regular hotkeys** (e.g., Cmd+A) use user's `minimumKeyTime` setting (default 0.2s)
+1. **Hotkey Recording Modes**: The app supports both press-and-hold and
+   double-tap recording modes, implemented in `HotKeyProcessor.swift`. See
+   `docs/hotkey-semantics.md` for detailed behavior specifications including:
+   - **Modifier-only hotkeys** (e.g., Option) use a **0.3s threshold** to
+     prevent accidental triggers from OS shortcuts
+   - **Regular hotkeys** (e.g., Cmd+A) use user's `minimumKeyTime` setting
+     (default 0.2s)
    - Mouse clicks and extra modifiers are discarded within threshold, ignored after
    - Only ESC cancels recordings after the threshold
 
-2. **Model Management**: Models are managed by `ModelDownloadFeature`. Curated defaults live in `Vox/Resources/Data/models.json`. The Settings UI shows a compact opinionated list of native FluidAudio models first, with Whisper options behind "Show more". No dropdowns.
+2. **Model Management**: Models are managed by `ModelDownloadFeature`. Curated
+   defaults live in `Vox/Resources/Data/models.json`. The Settings UI shows a
+   compact opinionated list of native FluidAudio models first, with Whisper
+   options behind "Show more". No dropdowns.
 
-3. **Sound Effects**: Audio feedback is provided via `SoundEffect.swift` using files in `Resources/Audio/`
+3. **Sound Effects**: Audio feedback is provided via `SoundEffect.swift` using
+   files in `Resources/Audio/`
 
-4. **Window Management**: Uses an `InvisibleWindow` for the transcription indicator overlay
+4. **Window Management**: Uses an `InvisibleWindow` for the transcription
+   indicator overlay
 
 5. **Permissions**: Requires audio input and automation entitlements (see `Vox.entitlements`)
 
-6. **Logging**: All diagnostics should use the unified logging helper `VoxLog` (`VoxCore/Sources/VoxCore/Logging.swift`). Pick an existing category (e.g., `.transcription`, `.recording`, `.settings`) or add a new case so Console predicates stay consistent. Avoid `print` and prefer privacy annotations (`, privacy: .private`) for anything potentially sensitive like transcript text or file paths.
+6. **Logging**: All diagnostics should use the unified logging helper `VoxLog`
+   (`VoxCore/Sources/VoxCore/Logging.swift`). Pick an existing category (e.g.,
+   `.transcription`, `.recording`, `.settings`) or add a new case so Console
+   predicates stay consistent. Avoid `print` and prefer privacy annotations
+   (`, privacy: .private`) for anything potentially sensitive like transcript
+   text or file paths.
 
 ## Models (2025‑11)
 
 - First-run default: Parakeet TDT v3 (multilingual) via FluidAudio
-- Additional curated: Parakeet TDT v2, Nemotron 3.5 ASR full multilingual, Whisper Small (Tiny), Whisper Medium (Base), Whisper Large v3
-- Note: Distil‑Whisper is English‑only and not shown by default
+- Additional curated: Parakeet TDT v2, Nemotron 3.5 ASR full multilingual,
+  Whisper Small (Tiny), Whisper Medium (Base), Whisper Large v3
+- Note: Distil-Whisper is English-only and not shown by default
 
 ### Storage Locations
 
@@ -81,14 +100,16 @@ The app uses **The Composable Architecture (TCA)** for state management. Key arc
   - We set `XDG_CACHE_HOME` on launch so FluidAudio caches under the app container:
   - `~/Library/Containers/nz.uic.vox/Data/Library/Application Support/FluidAudio/Models/parakeet-tdt-0.6b-v3-coreml`
   - `~/Library/Containers/nz.uic.vox/Data/Library/Application Support/FluidAudio/Models/nemotron-multilingual/multilingual/2240ms`
-  - Legacy `~/.cache/fluidaudio/Models/…` is not visible to the sandbox; re‑download or import.
+  - Legacy `~/.cache/fluidaudio/Models/…` is not visible to the sandbox;
+    re-download or import.
 
 ### Progress + Availability
 
 - WhisperKit: native progress
 - Parakeet: best‑effort progress by polling the model directory size during download
 - Nemotron: FluidAudio download progress
-- Availability detection scans both `Application Support/FluidAudio/Models` and our app cache path
+- Availability detection scans both `Application Support/FluidAudio/Models` and
+  our app cache path
 
 ## Building & Running
 
@@ -97,7 +118,8 @@ The app uses **The Composable Architecture (TCA)** for state management. Key arc
 ### Packages
 
 - WhisperKit: `https://github.com/argmaxinc/WhisperKit`
-- FluidAudio: `https://github.com/FluidInference/FluidAudio.git` (link `FluidAudio` to Vox target)
+- FluidAudio: `https://github.com/FluidInference/FluidAudio.git`
+  (link `FluidAudio` to Vox target)
 
 ### Entitlements (Sandbox)
 
@@ -118,24 +140,32 @@ FluidAudio models reside under `Application Support/FluidAudio/Models`.
 
 ## UI
 
-- Settings → Transcription Model shows a compact list with radio selection, accuracy/speed dots, size on right, and trailing menu / download‑check icon.
+- Settings -> Transcription Model shows a compact list with radio selection,
+  accuracy/speed dots, size on right, and trailing menu / download-check icon.
 - Context menu offers Show in Finder / Delete.
 
 ## Troubleshooting
 
-- Repeated mic prompts during debug: ensure Debug signing uses "Apple Development" so TCC sticks
-- Sandbox network errors (‑1003): add `com.apple.security.network.client = true` (already set)
-- FluidAudio model not detected: ensure it resides under the container path above; downloading from Vox places it correctly.
+- Repeated mic prompts during debug: ensure Debug signing uses
+  "Apple Development" so TCC sticks
+- Sandbox network errors (-1003): add
+  `com.apple.security.network.client = true` (already set)
+- FluidAudio model not detected: ensure it resides under the container path
+  above; downloading from Vox places it correctly.
 
 ## Git Commit Messages
 
-- Use a concise, descriptive subject line that captures the user-facing impact (roughly 50–70 characters).
-- Follow up with as much context as needed in the body. Include the rationale, notable tradeoffs, relevant logs, or reproduction steps—future debugging benefits from having the full story directly in git history.
+- Use a concise, descriptive subject line that captures the user-facing impact
+  (roughly 50-70 characters).
+- Follow up with as much context as needed in the body. Include the rationale,
+  notable tradeoffs, relevant logs, or reproduction steps. Future debugging
+  benefits from having the full story directly in git history.
 - Reference any related GitHub issues in the body if the change tracks ongoing work.
 
 ## Releasing a New Version
 
-Releases are automated via the local build tool, which handles building, signing, notarizing, appcast generation, and GitHub release uploads.
+Releases are automated via the local build tool, which handles building,
+signing, notarizing, appcast generation, and GitHub release uploads.
 
 ### Prerequisites
 
@@ -175,10 +205,9 @@ Releases are automated via the local build tool, which handles building, signing
 4. Creates a ZIP archive containing the stapled app
 5. Creates, notarizes, and staples a DMG
 6. Copies the DMG into `build/updates`
-7. Generates Sparkle `appcast.xml` with GitHub release asset URLs
-8. Uploads Sparkle assets to the dedicated GitHub release tagged `sparkle`
-9. Creates or updates the versioned GitHub release
-10. Uploads versioned DMG and ZIP attachments
+7. Generates Sparkle `appcast.xml` with versioned GitHub release asset URLs
+8. Creates or updates the versioned GitHub release
+9. Uploads `appcast.xml`, DMG, ZIP, and `vox-latest.dmg` attachments
 
 ### Artifacts
 
